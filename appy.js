@@ -15,6 +15,8 @@ var clone = require('clone');
 var bless = require('bless');
 var path = require('path');
 
+var https = require('https');
+
 var options, globalOptions;
 var db;
 var app, baseApp;
@@ -189,7 +191,7 @@ var authStrategies = {
         // Passing false as second argument clears their
         // session so they can run around as a logged out person
         // and try again; much more useful than an inscrutable
-        // error message with line numbers, which is what
+        // error mefssage with line numbers, which is what
         // passport does if you report an error
         // https://github.com/jaredhanson/passport/issues/6
         return done(null, false);
@@ -742,6 +744,7 @@ module.exports.listen = function(address, port /* or just port, or nothing */) {
   }
   address = address || options.address;
   port = port || options.port;
+  var ssl = ssl || options.ssl;
 
   // Heroku
   if (process.env.ADDRESS) {
@@ -770,12 +773,21 @@ module.exports.listen = function(address, port /* or just port, or nothing */) {
       }
     }
   }
+
+  var _app = (baseApp || app);
+  var sslOpts = null;
+  if(ssl && ssl !== false) {
+    sslOpts.key = fs.readFileSync(ssl.pathToKey);
+    sslOpts.cert = fs.readFileSync(ssl.pathToCert);
+  }
   if (port.toString().match(/^\d+$/)) {
     console.log("Listening on " + address + ":" + port);
-    (baseApp || app).listen(port, address);
+    if(!ssl || ssl === false) _app.listen(port, address);
+    else https.createServer(sslOpts, _app).listen(port, address);
   } else {
     console.log("Listening at " + port);
-    (baseApp || app).listen(port);
+    if(!ssl || ssl === false) _app.listen(port);
+    else https.createServer(sslOpts,_app).listen(port)
   }
 };
 
