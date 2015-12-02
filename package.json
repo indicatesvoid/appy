@@ -15,6 +15,7 @@
   "main": "appy.js",
   "dependencies": {
     "async": "~0.2.9",
+    "bcrypt": "latest",
     "bless": "^3.0.3",
     "clone": "~0.1.11",
     "connect-flash": "~0.1.0",
