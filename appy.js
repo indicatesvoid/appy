@@ -15,6 +15,8 @@ var clone = require('clone');
 var bless = require('bless');
 var path = require('path');
 
+var bcrypt=require('bcrypt');
+
 var https = require('https');
 
 var options, globalOptions;
@@ -89,6 +91,7 @@ var authStrategies = {
     var LocalStrategy = require('passport-local').Strategy;
     passport.use(new LocalStrategy(
       function(username, password, callback) {
+        console.log("using local strategy...");
         // Make sure we're not vulnerable to an exploit trying passwords
         // that will match all users for whom either username or email
         // happens to be blank
@@ -133,8 +136,14 @@ var authStrategies = {
             return done(null, false, { message: 'Invalid username or password' });
           }
         }
+
+        //////////////
+        // check db //
+        //////////////
+        console.log("options.collection = " + options.collection);
         var collection = options.collection || 'users';
         if (!module.exports[collection]) {
+          console.log("collection not found");
           return done(null, false, { message: 'Invalid username or password' });
         }
         var users = module.exports[collection];
@@ -150,24 +159,32 @@ var authStrategies = {
             return done(null, false, { message: 'Invalid username or password' });
           }
           // Allow an alternate password verification function
-          var verify = options.verify || function(password, hash) {
-            return passwordHash.verify(password, hash);
+          // var verify = options.verify || function(password, hash) {
+          var verify = function(password, hash, cback) {
+            // return passwordHash.verify(password, hash);
+            console.log("Verifying password...");
+            bcrypt.compare(password, hash, function(err, result) {
+              console.log("bcrypt.compare result = " + result);
+              cback(result);
+            });
           };
-          var result = verify(password, user.password);
-          if (result) {
-            // Don't keep this around where it might wind up in a session somehow,
-            // even though it's hashed that is still dangerous
-            delete user.password;
+          verify(password, user.password, function(result) {
+            // var result = verify(password, user.password);
+            if (result) {
+              // Don't keep this around where it might wind up in a session somehow,
+              // even though it's hashed that is still dangerous
+              delete user.password;
 
-            // Flag indicating this user came from mongodb. We use this to
-            // determine we should refresh them from the database via the
-            // serialization middleware, to ensure we have an up to date idea
-            // of their profile and privileges
-            user._mongodb = true;
-            return done(null, user);
-          } else {
-            return done(null, false, { message: 'Invalid username or password' });
-          }
+              // Flag indicating this user came from mongodb. We use this to
+              // determine we should refresh them from the database via the
+              // serialization middleware, to ensure we have an up to date idea
+              // of their profile and privileges
+              user._mongodb = true;
+              return done(null, user);
+            } else {
+              return done(null, false, { message: 'Invalid username or password' });
+            }
+          });
         });
       }
     ));
