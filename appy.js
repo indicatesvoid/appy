@@ -164,7 +164,7 @@ var authStrategies = {
             // return passwordHash.verify(password, hash);
             console.log("Verifying password...");
             bcrypt.compare(password, hash, function(err, result) {
-              console.log("bcrypt.compare result = " + result);
+              //console.log("bcrypt.compare result = " + result);
               cback(result);
             });
           };
@@ -794,6 +794,7 @@ module.exports.listen = function(address, port /* or just port, or nothing */) {
   var _app = (baseApp || app);
   var sslOpts = null;
   if(ssl && ssl !== false) {
+    sslOpts = { key: null, cert: null };
     sslOpts.key = fs.readFileSync(ssl.pathToKey);
     sslOpts.cert = fs.readFileSync(ssl.pathToCert);
   }
